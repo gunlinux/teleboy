@@ -2,6 +2,7 @@ import requests
 import os
 import re
 import logging
+import warnings
 import posixpath
 
 logger = logging.getLogger(__name__)
@@ -36,10 +37,11 @@ class Teleboy:
         updates = self._get_updates()
         if "error" in updates or not updates:
             return {}
-        out = {}
+
         if updates and not updates.get("ok", False):
             return {}
 
+        out = {}
         for message in updates.get("result", []):  # pyright: ignore[reportGeneralTypeIssues]
             msg = message.get("message", {})
             chat = msg.get("chat", {})
@@ -78,3 +80,27 @@ class Teleboy:
     def send_msg_to_chats(self, text, chats):
         for chat_id in chats:
             self.send_msg(chat_id=chat_id, text=text)
+
+
+def get_updates(token, timeout=10):
+    warnings.warn('use new Teleboy Api via class', FutureWarning)
+    teleboy = Teleboy(token=token, timeout=timeout)
+    return teleboy._get_updates()
+
+
+def send_msg(token, chat_id, text, timeout=10, topic_id=None, parse_mode='MarkdownV2'):
+    warnings.warn('use new Teleboy Api via class', FutureWarning)
+    teleboy = Teleboy(token=token, timeout=timeout)
+    teleboy.send_msg(chat_id=chat_id, text=text, topic_id=topic_id, parse_mode=parse_mode)
+
+
+def send_msgs(token, chat_ids, text, timeout=10):
+    warnings.warn('use new Teleboy Api via class', FutureWarning)
+    teleboy = Teleboy(token=token, timeout=timeout)
+    return teleboy.send_msg_to_chats(chats=chat_ids, text=text)
+
+
+def get_chats(token, timeout=10):
+    warnings.warn('use new Teleboy Api via class', FutureWarning)
+    teleboy = Teleboy(token=token)
+    return teleboy.get_chats()
