@@ -9,7 +9,6 @@ from typing import Optional
 logger = logging.getLogger(__name__)
 
 BASE = "https://api.telegram.org/bot"
-CHUNK_SIZE = 4096
 
 
 class Teleboy:
@@ -18,14 +17,13 @@ class Teleboy:
         token: str,
         topic_id: Optional[str | int] = None,
         timeout: int = 10,
-        chunk_size: int = CHUNK_SIZE,
+        chunk_size: int = 4096,
         base: Optional[None] = None,
     ) -> None:
         self.token: str = token
         self.topic_id: Optional[str | int] = topic_id
         self.timeout: int = timeout
-        if chunk_size is None:
-            self.chunk_size: int = CHUNK_SIZE
+        self.chunk_size: int = chunk_size
         if base is None:
             self.base_url: str = os.environ.get("TELEBOY_BASE", BASE)
 
