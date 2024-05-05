@@ -4,6 +4,7 @@ import re
 import logging
 import warnings
 import posixpath
+from typing import Optional
 
 logger = logging.getLogger(__name__)
 
@@ -12,28 +13,35 @@ CHUNK_SIZE = 4096
 
 
 class Teleboy:
-    def __init__(self, token, topic_id=None, timeout=10, chunk_size=None, base=None):
-        self.token = token
-        self.topic_id = topic_id
-        self.timeout = timeout
+    def __init__(
+        self,
+        token: str,
+        topic_id: Optional[str | int] = None,
+        timeout: int = 10,
+        chunk_size: int = CHUNK_SIZE,
+        base: Optional[None] = None,
+    ) -> None:
+        self.token: str = token
+        self.topic_id: Optional[str | int] = topic_id
+        self.timeout: int = timeout
         if chunk_size is None:
-            self.chunk_size = CHUNK_SIZE
+            self.chunk_size: int = CHUNK_SIZE
         if base is None:
-            self.base_url = os.environ.get("TELEBOY_BASE", BASE)
+            self.base_url: str = os.environ.get("TELEBOY_BASE", BASE)
 
-    def _get(self, url, params=None):
-        p_url = posixpath.join(f"{self.base_url}{self.token}", url)
+    def _get(self, url: str, params: Optional[dict] = None) -> dict:
+        p_url: str = posixpath.join(f"{self.base_url}{self.token}", url)
         req = requests.get(p_url, params=params, timeout=self.timeout)
         if req.status_code == 200:
             return req.json()
         logger.warning("%s  failed with %s", url, req.status_code)
         return {"error": req.status_code}
 
-    def _get_updates(self):
+    def _get_updates(self) -> dict:
         url_req = "getUpdates"
         return self._get(url_req)
 
-    def get_chats(self):
+    def get_chats(self) -> dict:
         updates = self._get_updates()
         if "error" in updates or not updates:
             return {}
@@ -42,7 +50,9 @@ class Teleboy:
             return {}
 
         out = {}
-        for message in updates.get("result", []):  # pyright: ignore[reportGeneralTypeIssues]
+        for message in updates.get(
+            "result", []
+        ):  # pyright: ignore[reportGeneralTypeIssues]
             msg = message.get("message", {})
             chat = msg.get("chat", {})
             if not chat:
@@ -56,11 +66,19 @@ class Teleboy:
                 out[chat["id"]] = f"{fname} {lname}"
         return out
 
-    def send_msg(self, chat_id, text, topic_id=None, parse_mode="MarkdownV2"):
+    def send_msg(
+        self,
+        chat_id: str,
+        text: str,
+        topic_id: Optional[str | int] = None,
+        parse_mode: str = "MarkdownV2",
+    ) -> None:
         if parse_mode == "MarkdownV2":
             text = re.sub(r"([_\[\]()~`>#+\-=|{}.!])", r"\\\1", text)
         if len(text) < self.chunk_size:
-            rez = self._send_msg(chat_id, text, topic_id=topic_id, parse_mode=parse_mode)
+            rez = self._send_msg(
+                chat_id, text, topic_id=topic_id, parse_mode=parse_mode
+            )
             logger.info(rez)
             return
         out = [
@@ -70,9 +88,15 @@ class Teleboy:
             rez = self._send_msg(chat_id, submsg, topic_id, parse_mode)
             logger.info(rez)
 
-    def _send_msg(self, chat_id, text, topic_id=None, parse_mode="MarkdownV2"):
-        url_req = "sendMessage"
-        params = {"text": text, "chat_id": chat_id, "parse_mode": parse_mode}
+    def _send_msg(
+        self,
+        chat_id: str,
+        text: str,
+        topic_id: Optional[str | int] = None,
+        parse_mode: str = "MarkdownV2",
+    ) -> dict:
+        url_req: str = "sendMessage"
+        params: dict = {"text": text, "chat_id": chat_id, "parse_mode": parse_mode}
         if topic_id:
             params["message_thread_id"] = topic_id
         return self._get(url_req, params=params)
@@ -82,25 +106,34 @@ class Teleboy:
             self.send_msg(chat_id=chat_id, text=text)
 
 
-def get_updates(token, timeout=10):
-    warnings.warn('use new Teleboy Api via class', FutureWarning)
+def get_updates(token: str, timeout: int = 10) -> dict:
+    warnings.warn("use new Teleboy Api via class", FutureWarning)
     teleboy = Teleboy(token=token, timeout=timeout)
     return teleboy._get_updates()
 
 
-def send_msg(token, chat_id, text, timeout=10, topic_id=None, parse_mode='MarkdownV2'):
-    warnings.warn('use new Teleboy Api via class', FutureWarning)
+def send_msg(
+    token: str,
+    chat_id: str,
+    text: str,
+    timeout: int = 10,
+    topic_id: Optional[str | int] = None,
+    parse_mode: str = "MarkdownV2",
+) -> None:
+    warnings.warn("use new Teleboy Api via class", FutureWarning)
     teleboy = Teleboy(token=token, timeout=timeout)
-    teleboy.send_msg(chat_id=chat_id, text=text, topic_id=topic_id, parse_mode=parse_mode)
+    return teleboy.send_msg(
+        chat_id=chat_id, text=text, topic_id=topic_id, parse_mode=parse_mode
+    )
 
 
-def send_msgs(token, chat_ids, text, timeout=10):
-    warnings.warn('use new Teleboy Api via class', FutureWarning)
+def send_msgs(token: str, chat_ids: list[str], text: str, timeout: int = 10) -> None:
+    warnings.warn("use new Teleboy Api via class", FutureWarning)
     teleboy = Teleboy(token=token, timeout=timeout)
     return teleboy.send_msg_to_chats(chats=chat_ids, text=text)
 
 
-def get_chats(token, timeout=10):
-    warnings.warn('use new Teleboy Api via class', FutureWarning)
+def get_chats(token: str) -> dict:
+    warnings.warn("use new Teleboy Api via class", FutureWarning)
     teleboy = Teleboy(token=token)
     return teleboy.get_chats()
